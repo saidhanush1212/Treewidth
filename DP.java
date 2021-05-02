@@ -2,10 +2,10 @@ import java.util.*;
 
 public class DP
 {
-    protected  int treewidth, upperBound, savedDFS;
+    protected  int treewidth;
 	protected  int n,m;
 	protected  int memory; 
-	protected  HashMap<BitSet,Integer>[] results;
+	protected  HashMap<BitSet,Integer>[] dp;
 	protected  int[] qvalues, visited1, oldqvalues;
 	protected  int[] vertex2cc, cc2q;
 	protected  HashSet<Integer> cStar;
@@ -18,24 +18,25 @@ public class DP
 		this.n=n;
 		this.m=m;
 		System.out.println("Initialization Function");
+		this.memory=0;
 		
 	}
 
     public void run() {
-		System.out.println("Run Function");
+		System.out.println("Running algorithm Function");
 		visited1 = new int[n];
 		vertex2cc = new int[n];		
-		results = new HashMap[n+1];
-		results[0] = new HashMap<BitSet,Integer>();
-		results[0].put(new BitSet(n),Integer.MIN_VALUE);
+		dp = new HashMap[n+1];
+		dp[0] = new HashMap<BitSet,Integer>();
+		dp[0].put(new BitSet(n),Integer.MIN_VALUE);
 		//Visit the sets in increasing size
 		//System.out.println("n"+n);
 		for (int i = 1; i <= n; ++i)
 		{
 			//System.out.println("Starting with sets of size "+i);
-			results[i] = new HashMap<BitSet,Integer>(Math.max(results[i-1].size(),n));
-			if (i > 2){ results[i-2] = null; }
-			for (BitSet set: results[i-1].keySet())
+			dp[i] = new HashMap<BitSet,Integer>(Math.max(dp[i-1].size(),n));
+			if (i > 2){ dp[i-2] = null; }
+			for (BitSet set: dp[i-1].keySet())
 			{
 				int firstbitset = set.nextSetBit(0);
 				if (firstbitset == -1){ firstbitset = n; }
@@ -43,28 +44,24 @@ public class DP
 				{
 				  set.set(j);
 				  //System.out.println(set);
-				  if(!results[i].containsKey(set))
+				  if(!dp[i].containsKey(set))
 				  {
                       int rPrime = computeValue(set,i);
 					  BitSet toStore = (BitSet) set.clone();
-					  results[i].put(toStore,rPrime);     
+					  dp[i].put(toStore,rPrime);     
 				  }
 				  set.clear(j);
 				}	
-				  	
-				
-		    }
+			}
 		
 			//System.out.println("i "+i);
-			//System.out.println(results[i]);
-			
-			
-			
-	    }
+			//System.out.println(dp[i]);
+			memory=Math.max(memory,dp[i-1].size()+dp[i].size());
+		}
 		int mini=Integer.MAX_VALUE;
 			
-		if (results[n].values().toArray().length > 0)
-			mini = (Integer) results[n].values().toArray()[0];
+		if (dp[n].values().toArray().length > 0)
+			mini = (Integer) dp[n].values().toArray()[0];
 		else
 		  mini = n-1;
 		treewidth=mini;   	
@@ -79,8 +76,8 @@ public class DP
 			//remove the vertex from the set
 			set.clear(i);
 			//If the remaining set of vertices could still contribute to a better upperbound
-			if (results[size-1].containsKey(set)){
-				int prevTW = results[size-1].get(set);
+			if (dp[size-1].containsKey(set)){
+				int prevTW = dp[size-1].get(set);
 				//int q = q(set,new boolean[graph.vertices.size()],i);
 				//int thisTW = Math.max(prevTW,q);
 				int thisTW = Math.max(prevTW,cc2q[vertex2cc[i]]);

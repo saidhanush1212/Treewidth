@@ -30,11 +30,14 @@ public class Main{
                 long start = System.currentTimeMillis();
                 ma.run();
                 long end = System.currentTimeMillis();
+                
                 System.out.println("Running time for graph with " +n+ " vertices "+
                                             (end - start) + "ms");
+                System.out.println("Memory used for DP store "+ ma.memory*4+" Bytes");
                 
                 
-                System.out.println("Treewidth"+ma.treewidth);
+                
+                System.out.println("Treewidth:"+ma.treewidth);
         }
         catch(Exception ex)
          {
