@@ -2,14 +2,13 @@ import java.util.*;
 
 public class DP
 {
-    protected  int treewidth;
-	protected  int n,m;
-	protected  int memory; 
-	protected  HashMap<BitSet,Integer>[] dp;
-	protected  int[] qvalues, visited1, oldqvalues;
-	protected  int[] vertex2cc, cc2q;
-	protected  HashSet<Integer> cStar;
-	protected  ArrayList<Integer>[] G ;
+    public  int treewidth;
+	public  int n,m;
+	public  int memory; 
+	public  HashMap<BitSet,Integer>[] dp;
+	public  int[] color;
+	public  int[] v2cc, cc2qvalue;
+	public  ArrayList<Integer>[] G ;
 
 	DP(ArrayList<Integer>[] G ,int n,int m)
 	{
@@ -24,33 +23,31 @@ public class DP
 
     public void run() {
 		System.out.println("Running algorithm Function");
-		visited1 = new int[n];
-		vertex2cc = new int[n];		
+		color = new int[n];
+		v2cc = new int[n];		
 		dp = new HashMap[n+1];
 		dp[0] = new HashMap<BitSet,Integer>();
 		dp[0].put(new BitSet(n),Integer.MIN_VALUE);
-		//Visit the sets in increasing size
-		//System.out.println("n"+n);
 		for (int i = 1; i <= n; ++i)
 		{
 			//System.out.println("Starting with sets of size "+i);
 			dp[i] = new HashMap<BitSet,Integer>(Math.max(dp[i-1].size(),n));
 			if (i > 2){ dp[i-2] = null; }
-			for (BitSet set: dp[i-1].keySet())
+			for (BitSet bitset: dp[i-1].keySet())
 			{
-				int firstbitset = set.nextSetBit(0);
+				int firstbitset = bitset.nextSetBit(0);
 				if (firstbitset == -1){ firstbitset = n; }
-				for (int j = set.nextClearBit(0); j >= 0 && j<n; j=set.nextClearBit(j+1))
+				for (int j = bitset.nextClearBit(0); j >= 0 && j<n; j=bitset.nextClearBit(j+1))
 				{
-				  set.set(j);
+				  bitset.set(j);
 				  //System.out.println(set);
-				  if(!dp[i].containsKey(set))
+				  if(!dp[i].containsKey(bitset))
 				  {
-                      int rPrime = computeValue(set,i);
-					  BitSet toStore = (BitSet) set.clone();
-					  dp[i].put(toStore,rPrime);     
+                      int rvalue = computeValue(bitset,i);
+					  BitSet toStore = (BitSet) bitset.clone();
+					  dp[i].put(toStore,rvalue);     
 				  }
-				  set.clear(j);
+				  bitset.clear(j);
 				}	
 			}
 		
@@ -67,79 +64,67 @@ public class DP
 		treewidth=mini;   	
 	}	
 
-	private int computeValue(BitSet set, int size){
+	private int computeValue(BitSet bitset, int size){
 		int minValue = Integer.MAX_VALUE;
-		//int vertexId;
-		setSet(set,size);
-		//For all vertices in the set
-		for (int i = set.nextSetBit(0); i >= 0; i=set.nextSetBit(i+1)){
-			//remove the vertex from the set
-			set.clear(i);
-			//If the remaining set of vertices could still contribute to a better upperbound
-			if (dp[size-1].containsKey(set)){
-				int prevTW = dp[size-1].get(set);
-				//int q = q(set,new boolean[graph.vertices.size()],i);
-				//int thisTW = Math.max(prevTW,q);
-				int thisTW = Math.max(prevTW,cc2q[vertex2cc[i]]);
+		
+		bitset_allCC(bitset,size);//
+		
+		for (int i = bitset.nextSetBit(0); i >= 0; i=bitset.nextSetBit(i+1)){
+			
+			bitset.clear(i);
+			
+			if (dp[size-1].containsKey(bitset)){
+				int prevTW = dp[size-1].get(bitset);
+				
+				int thisTW = Math.max(prevTW,cc2qvalue[v2cc[i]]);
 				if (thisTW < minValue){
 					minValue = thisTW;
-					//vertexId = i;
+					
 				}
 			}
-			//put the vertex back in the set
-			set.set(i);
+			bitset.set(i);
 		}
-		//System.out.print(" Computed value: "+minValue+"\n");
+		
 		return minValue;
 	}
 
-	private void setSet(BitSet set, int size){
-		//compute q-values for the connected components
-		//changedVertices = new ArrayList<Integer>();
-		//changedValues = new ArrayList<Integer>();
-		//qvalues = new int[graph.vertices.size()];
+	private void bitset_allCC(BitSet bitset, int size){
+		
 		for(int i = 0; i < n; ++i){
-			visited1[i] = 0;
-			vertex2cc[i] = 0;
+			color[i] = 0;
+			v2cc[i] = 0;
 		}
-		//visited1 = new int[graph.vertices.size()];
-		//vertex2cc = new int[graph.vertices.size()];
-		cc2q = new int[size+1];
+		
+		cc2qvalue = new int[size+1];
 		int start = 0;
 		int cc = 0;
 		boolean done = false;
 		while (!done){
-			int bit = set.nextSetBit(start);
+			int bit = bitset.nextSetBit(start);
 			if (bit == -1){
 				done = true;
-			} else if (visited1[bit] == 0) {
+			} else if (color[bit] == 0) {
 				++cc;
-				cc2q[cc] = computeQValue(set,bit,visited1,cc);
+				cc2qvalue[cc] = computeQValue_oneCC(bitset,bit,color,cc);
 			}
 			start = bit+1;
 		}
 	}
 
-	private int computeQValue(BitSet set, int vertex, int[] visited, int cc){
+	private int computeQValue_oneCC(BitSet bitset, int vertex, int[] color, int cc){
 		int q = 0;
-		visited[vertex] = cc;
-		vertex2cc[vertex] = cc;
+		color[vertex] = cc;
+		v2cc[vertex] = cc;
 		for (int neighbor : G[vertex]){
-			if (visited[neighbor] != cc){
-				if (set.get(neighbor)){
-					q = q + computeQValue(set,neighbor,visited,cc);
+			if (color[neighbor] != cc){
+				if (bitset.get(neighbor)){
+					q = q + computeQValue_oneCC(bitset,neighbor,color,cc);
 				} else {
-					visited[neighbor] = cc;
+					color[neighbor] = cc;
 					++q;
 				}
 			}
-			/*
-			if (!set.get(neighbor) && visited[neighbor] != cc){
-				visited[neighbor] = cc;
-				++q;
-			} else if (set.get(neighbor) && visited[neighbor] != cc){
-				q = q + computeQValue(set,neighbor,visited,cc);
-			}*/
+			
 		}
 		return q;
 	}
